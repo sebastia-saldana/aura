@@ -9,10 +9,14 @@ class Aura extends Component{
             showPoints: false,
             show: false,
             id: '',
+            parcialprom: 0,
             filter: '',
             rate: '',
             starts: [],
+            personStarts: [],
             persons: [],
+            bestPerson: [],
+            promLocal: ''
         }
 
         this.handleSubmit = this.handleSubmit.bind(this)
@@ -51,6 +55,25 @@ class Aura extends Component{
       this.setState({
         filter:'',
         persons: personsFilter
+      }, ()=>{
+        this.getTopFilter(this.state.persons)
+      })
+    }
+
+    getTopFilter = async (persons) =>{
+      let proms = 0
+      let mayor = []
+      for(let person of persons){
+        await this.getStartsProm(person.id)
+        proms += this.state.parcialprom
+        mayor.push(person.average)
+      }
+      let i = mayor.indexOf(Math.max(...mayor))
+      this.setState({
+        bestPerson: this.state.persons[i]
+      }, () =>{
+        console.log(proms / persons.length);
+        console.log(this.state.bestPerson);
       })
     }
 
@@ -69,7 +92,7 @@ class Aura extends Component{
       let newPersons = []
       for (let person of persons){
         await this.getStarts(person.id)
-        let sum = 0;
+        let sum = 0
         Object.values(this.state.starts).forEach(point => {
           sum += parseInt(point.starts)
         });
@@ -81,11 +104,33 @@ class Aura extends Component{
       })
     }
 
+    getStartsProm = async (id) =>{
+      let total = 0
+      await listStarts(id).then(data => {
+        for(let point of data){
+          total += parseInt(point.starts)
+        }
+        this.setState({
+          parcialprom: (total / data.length)
+        })
+      })
+    }
+
     getStarts = async (id) =>{
       await listStarts(id).then(data => {
         this.setState(
           {
             starts: [...data]
+          }
+        )
+      })
+    }
+
+    getStartsPerson = async (id) =>{
+      await listStarts(id).then(data => {
+        this.setState(
+          {
+            personStarts: [...data]
           }
         )
       })
@@ -107,15 +152,16 @@ class Aura extends Component{
           <td>{person.age}</td>
           <td>{person.location}</td>
           <td>{person.average}</td>
-          <td>
-            <ReactBootStrap.Button  className="mr-2" onClick = { () =>{
+          <td className="text-nowrap">
+            <ReactBootStrap.Button className="mr-3" onClick = { () =>{
               this.setState({
                 show: true,
+                rate: '1',
                 id: person.id
               })
             }}>Rate</ReactBootStrap.Button>
             <ReactBootStrap.Button  onClick = { async () =>{
-              await this.getStarts(person.id)
+              await this.getStartsPerson(person.id)
               this.setState({
                 id: person.id,
                 showPoints: true
@@ -159,7 +205,7 @@ class Aura extends Component{
                   <th>Age</th>
                   <th>Location</th>
                   <th>Average</th>
-                  <th>Rate</th>
+                  <th className="text-nowrap" >Rate</th>
                 </tr>
               </thead>
               <tbody>
@@ -222,7 +268,7 @@ class Aura extends Component{
                       </tr>
                     </thead>
                     <tbody>
-                      {this.state.starts.map(this.renderPoints)}
+                      {this.state.personStarts.map(this.renderPoints)}
                     </tbody>
                   </ReactBootStrap.Table>
                 </ReactBootStrap.Modal.Body>
